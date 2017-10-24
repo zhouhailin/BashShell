@@ -47,23 +47,16 @@ log_out(){
 	fi
 
 	# output file or console
-	if [ -z $LOG_FILE_NAME ];then
-		log_console $log_text
-	else
+	log_console $log_text
+	if [ ! -z $LOG_FILE_NAME ];then
 		if [ -f $LOG_FILE_NAME ];then
 			if [ -w $LOG_FILE_NAME ];then
 				log_file $log_text
-			else
-				log_console $log_text
 			fi
-		elif [ -d $LOG_FILE_NAME ];then
-			log_console $log_text
-		else
+		elif [ ! -d $LOG_FILE_NAME ];then
 			touch $LOG_FILE_NAME > /dev/null 2>&1
 			if [ $? -eq 0 ];then
 				log_file $log_text
-			else
-				log_console $log_text
 			fi
 		fi
 	fi
@@ -72,9 +65,20 @@ log_out(){
 check_history_log_file(){
 	if [ ! -z LOG_KEEP_FILE_NUMS ];then
 		# LOG_KEEP_FILE_NUMS is set by user
-		if [ "$LOG_KEEP_FILE_NUMS" -gt 0 ] 2>/dev/null ;then
-			//TODO
-			echo "" > /dev/null
+		if [ "$LOG_KEEP_FILE_NUMS" -gt 0 ] 2> /dev/null ;then
+			LOG_PRIVATE_CURRENT_DATE_STRING=`date "+%Y-%m-%d"`
+			if [ ! -z $LOG_PRIVATE_PREVIOUS_DATE_STRING ];then
+				echo ""
+			fi
+			lineid=0
+			log_dir=`dirname $LOG_FILE_NAME`
+			for line in `ls -lt $log_dir|awk '{print $9}'`
+			do
+    			let lineid=lineid+1;
+   				if [ $lineid -gt $LOG_KEEP_FILE_NUMS ];then
+        			rm -f $log_dir"/"$line 
+    			fi
+			done
 		fi
 	fi
 }
@@ -143,14 +147,16 @@ log_error(){
 log_usage(){
 	echo "Usage($LOG_VERSION): $LOG_BINARY_NAME [OPTION] [TEXT]"
 	echo "OPTION argument : TRACE, DEBUG, INFO, WARN, ERROR"
-	echo "TEXT   argument : output text."
+	echo "TEXT   argument : 输出内容"
 	echo ""
-	echo "export LOG_FILE_NAME=/tmp/log 	# the log will output to file /tmp/log"
-	echo "export LOG_CONSOLE_OFF=\"TRUE\" 	# console log disappear."
-	echo "export LOG_SHELL_NAME=\"LogTest\"	# you can have a try."
+	echo "export LOG_FILE_NAME=/tmp/log 	# 日志文件名 : /tmp/log"
+	echo "export LOG_CONSOLE_OFF=\"TRUE\" 	# 关闭控制台输出 : TRUE"
+	echo "export LOG_SHELL_NAME=\"LogTest\"	# 设置日志输出时，脚本名称 : LogTest"
+	echo "export LOG_KEEP_FILE_NUMS=10	# 保存的日志文件数量 : 10"
 	echo ""
-	echo "Example : $LOG_BINARY_NAME {TRACE|DEBUG|INFO|WARN|ERROR} output text"
-	echo "          $LOG_BINARY_NAME INFO you are beautiful girls!"
+	echo " $LOG_BINARY_NAME {TRACE|DEBUG|INFO|WARN|ERROR} output text"
+	echo " Example : $LOG_BINARY_NAME INFO you are beautiful girls!"
+	echo "           $LOG_BINARY_NAME info you are beautiful girls!"
 	echo ""
 }
 
